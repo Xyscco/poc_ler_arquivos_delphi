@@ -1,0 +1,68 @@
+# Git ignore para projetos Delphi / RAD Studio
+
+# Arquivos de build / artefatos
+*.exe
+*.dll
+*.lib
+*.a
+*.o
+*.obj
+*.tds
+*.map
+*.pch
+*.res
+*.dcp
+*.bpl
+*.dcu
+*.identcache
+
+# Pastas comuns de saída / binários
+/Debug/
+/Release/
+/Bin/
+/Build/
+/Output/
+/Dist/
+/Obj/
+/Lib/
+/Binaries/
+/Win32/
+/Win64/
+/x86/
+/x64/
+
+# Arquivos de configuração/estado gerados pelo IDE (user-specific)
+/*.dproj.user
+/*.dproj.local
+*.local
+*.dsk
+*.cfg
+*.groupproj
+
+# Backups temporários / editores
+*~
+*~*
+*.bak
+*.tmp
+*.cache
+*.orig
+*.swp
+*.swo
+.#*
+.ionide/
+
+# Ferramentas / caches do editor
+.idea/
+.vscode/
+.vs/
+*.suo
+*.user
+*.userosscache
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Outros
+*.log
+*.log.*
