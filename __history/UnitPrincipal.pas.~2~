@@ -1,0 +1,72 @@
+unit UnitPrincipal;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Classes, System.IOUtils, System.Hash, System.Variants,
+  Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls;
+
+type
+
+  TFileInfo = record
+    Name: string;
+    Path: string;
+    Size: Int64;
+    ModifiedDate: TDateTime;
+    MD5: string;
+  end;
+
+  TFileList = TArray<TFileInfo>;
+
+  TForm1 = class(TForm)
+    Button1: TButton;
+    procedure Button1Click(Sender: TObject);
+  private
+    { Private declarations }
+    function GetAllFiles(const StartDirectory: string): TFileList;
+    function CalculateFileMD5(const FilePath: string): string;
+  public
+    { Public declarations }
+  end;
+
+var
+  Form1: TForm1;
+
+implementation
+
+{$R *.dfm}
+
+procedure TForm1.Button1Click(Sender: TObject);
+begin
+  // Ler arquivos
+end;
+
+function TForm1.CalculateFileMD5(const FilePath: string): string;
+var
+  MD5: THashMD5;
+  Stream: TFileStream;
+begin
+  Result := '';
+  if not FileExists(FilePath) then
+    Exit;
+
+  try
+    Stream := TFileStream.Create(FilePath, fmOpenRead or fmShareDenyWrite);
+    try
+      MD5 := THashMD5.Create;
+      Result := MD5.GetHashString(Stream);
+    finally
+      Stream.Free;
+    end;
+  except
+    on E: Exception do
+      Result := 'Error: ' + E.Message;
+  end;
+end;
+
+function TForm1.GetAllFiles(const StartDirectory: string): TFileList;
+begin
+
+end;
+
+end.
