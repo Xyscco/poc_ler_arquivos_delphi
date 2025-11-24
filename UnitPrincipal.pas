@@ -4,32 +4,27 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Classes, System.IOUtils, System.Hash, System.Variants,
+  System.Generics.Collections, System.Types,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Data.DB,
   Vcl.Grids, Vcl.DBGrids, DBClient;
 
 type
-
-  TFileInfo = record
-    Name: string;
-    Path: string;
-    Size: Int64;
-    ModifiedDate: TDateTime;
-    MD5: string;
-  end;
-
-  TFileList = TArray<TFileInfo>;
 
   TForm1 = class(TForm)
     Button1: TButton;
     DBGrid1: TDBGrid;
     ClientDataSet1: TClientDataSet;
     DataSource1: TDataSource;
+    Memo1: TMemo;
+    btnAtualizar: TButton;
+    Button2: TButton;
     procedure Button1Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure btnAtualizarClick(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
   private
     { Private declarations }
-    function GetAllFiles(const StartDirectory: string): TFileList;
-    function CalculateFileMD5(const FilePath: string): string;
+//    function GetAllFiles(const StartDirectory: string): TFileList;
     procedure FillDataSetWithFiles(DataSet: TClientDataSet; const StartDirectory: string);
   public
     { Public declarations }
@@ -42,31 +37,63 @@ implementation
 
 {$R *.dfm}
 
-procedure TForm1.Button1Click(Sender: TObject);
+uses UnitFileManager;
+
+procedure TForm1.btnAtualizarClick(Sender: TObject);
+var
+  vFileManger: TFileManager;
 begin
-  FillDataSetWithFiles(ClientDataSet1, 'F:\Emuladores\Packs jogos traduzidos');
+  try
+    vFileManger:= TFileManager.Create;
+    Screen.Cursor := crHourGlass;
+
+    try
+      vFileManger.SynchronizeFolders('C:\ProgramData\Unifar\cache_versoes\4.077.0-0\UniWin', 'C:\Publico\UniWin');
+      ShowMessage('Sincronização concluída com sucesso!');
+    except
+      on E: Exception do
+        ShowMessage('Erro durante a sincronização: ' + E.Message);
+    end;
+  finally
+    vFileManger.Free;
+    Screen.Cursor := crDefault;
+  end;
 end;
 
-function TForm1.CalculateFileMD5(const FilePath: string): string;
-var
-  MD5: THashMD5;
-  Stream: TFileStream;
+procedure TForm1.Button1Click(Sender: TObject);
 begin
-  Result := '';
-  if not FileExists(FilePath) then
-    Exit;
+  FillDataSetWithFiles(ClientDataSet1, 'C:\Publico\UniWin');
+end;
 
+procedure TForm1.Button2Click(Sender: TObject);
+var
+  SyncList: TFileSyncList;
+  SyncInfo: TFileSyncInfo;
+  vFileManger: TFileManager;
+begin
   try
-    Stream := TFileStream.Create(FilePath, fmOpenRead or fmShareDenyWrite);
+    Screen.Cursor := crHourGlass;
+    vFileManger:= TFileManager.Create;
     try
-      MD5 := THashMD5.Create;
-      Result := MD5.GetHashString(Stream);
-    finally
-      Stream.Free;
+      SyncList := vFileManger.CompareFolders('C:\ProgramData\Unifar\cache_versoes\4.077.0-0\UniWin', 'C:\Publico\UniWin');
+
+      // Exibir no grid ou lista
+      for SyncInfo in SyncList do
+      begin
+        case SyncInfo.Operation of
+          soCopy: Memo1.Lines.Add('COPIAR: ' + SyncInfo.RelativePath);
+          soUpdate: Memo1.Lines.Add('ATUALIZAR: ' + SyncInfo.RelativePath);
+          soDelete: Memo1.Lines.Add('EXCLUIR: ' + SyncInfo.RelativePath);
+        end;
+      end;
+
+      ShowMessage(Format('Foram encontradas %d operações necessárias', [Length(SyncList)]));
+    except
+      on E: Exception do
+        ShowMessage('Erro durante a comparação: ' + E.Message);
     end;
-  except
-    on E: Exception do
-      Result := 'Error: ' + E.Message;
+  finally
+    Screen.Cursor := crDefault;
   end;
 end;
 
@@ -96,7 +123,7 @@ begin
   end;
 
   // Obter a lista de arquivos
-  Files := GetAllFiles(StartDirectory);
+//  Files := GetAllFiles(StartDirectory);
 
   // Preencher o DataSet
   for FileInfo in Files do
@@ -155,58 +182,74 @@ begin
   end;
 end;
 
-function TForm1.GetAllFiles(const StartDirectory: string): TFileList;
-var
-  Files: TArray<string>;
-  Directories: TArray<string>;
-  i: Integer;
-  CurrentFile: TFileInfo;
-  SubFiles: TFileList;
-begin
-  // Verifica se o diretório existe
-  if not TDirectory.Exists(StartDirectory) then
-    Exit(nil);
 
-  // Busca todos os arquivos no diretório atual
-  Files := TDirectory.GetFiles(StartDirectory);
-  SetLength(Result, Length(Files));
+//function TForm1.GetAllFiles(const StartDirectory: string): TFileList;
+//var
+//  Files: TArray<string>;
+//  Directories: TArray<string>;
+//  i, j: Integer;
+//  CurrentFile: TFileInfo;
+//  SubFiles: TFileList;
+//  TempFiles: TArray<string>;
+//begin
+//  if not TDirectory.Exists(StartDirectory) then
+//    Exit(nil);
+//
+//  // Busca todos os arquivos no diretório atual
+//  Files := TDirectory.GetFiles(StartDirectory);
+//
+//  // Filtra os arquivos, removendo .log e .fbd
+//  j := 0;
+//  SetLength(TempFiles, Length(Files));
+//  for i := 0 to High(Files) do
+//  begin
+//    if not ShouldIgnoreFile(Files[i]) then
+//    begin
+//      TempFiles[j] := Files[i];
+//      Inc(j);
+//    end
+//    else
+//      Memo1.Lines.Add('Arquivo ignorado: ' + TPath.GetFileNameWithoutExtension(Files[i]));
+//  end;
+//  SetLength(TempFiles, j);
+//  Files := TempFiles;
+//
+//  SetLength(Result, Length(Files));
+//
+//  for i := 0 to High(Files) do
+//  begin
+//    try
+//      CurrentFile.Name := TPath.GetFileName(Files[i]);
+//      CurrentFile.Path := Files[i];
+//      CurrentFile.Size := TFile.GetSize(Files[i]);
+//      CurrentFile.ModifiedDate := TFile.GetLastWriteTime(Files[i]);
+//      CurrentFile.MD5 := CalculateFileMD5(Files[i]);
+//      Result[i] := CurrentFile;
+//    except
+//      on E: Exception do
+//      begin
+//        CurrentFile.Name := TPath.GetFileName(Files[i]);
+//        CurrentFile.Path := Files[i];
+//        CurrentFile.Size := -1;
+//        CurrentFile.ModifiedDate := 0;
+//        CurrentFile.MD5 := 'Error: ' + E.Message;
+//        Result[i] := CurrentFile;
+//      end;
+//    end;
+//  end;
+//
+//  // Busca recursivamente nas subpastas
+//  Directories := TDirectory.GetDirectories(StartDirectory);
+//  for i := 0 to High(Directories) do
+//  begin
+//    try
+//      SubFiles := GetAllFiles(Directories[i]);
+//      Result := Result + SubFiles;
+//    except
+//      Continue;
+//    end;
+//  end;
+//end;
 
-  for i := 0 to High(Files) do
-  begin
-    try
-      CurrentFile.Name := TPath.GetFileName(Files[i]);
-      CurrentFile.Path := Files[i];
-      CurrentFile.Size := TFile.GetSize(Files[i]);
-      CurrentFile.ModifiedDate := TFile.GetLastWriteTime(Files[i]);
-      CurrentFile.MD5 := CalculateFileMD5(Files[i]);
-      Result[i] := CurrentFile;
-    except
-      on E: Exception do
-      begin
-        // Em caso de erro, preenche com valores padrão
-        CurrentFile.Name := TPath.GetFileName(Files[i]);
-        CurrentFile.Path := Files[i];
-        CurrentFile.Size := -1;
-        CurrentFile.ModifiedDate := 0;
-        CurrentFile.MD5 := 'Error calculating MD5: ' + E.Message;
-        Result[i] := CurrentFile;
-      end;
-    end;
-  end;
-
-  // Busca recursivamente nas subpastas
-  Directories := TDirectory.GetDirectories(StartDirectory);
-  for i := 0 to High(Directories) do
-  begin
-    try
-      SubFiles := GetAllFiles(Directories[i]); // Chamada recursiva
-      Result := Result + SubFiles; // Concatena arrays
-    except
-      on E: Exception do
-        // Continua processando outras pastas mesmo se uma falhar
-        Continue;
-    end;
-  end;
-end;
 
 end.

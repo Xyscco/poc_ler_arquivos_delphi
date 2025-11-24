@@ -2,7 +2,8 @@ program poc_ler_arquivos;
 
 uses
   Vcl.Forms,
-  UnitPrincipal in 'UnitPrincipal.pas' {Form1};
+  UnitPrincipal in 'UnitPrincipal.pas' {Form1},
+  UnitFileManager in 'UnitFileManager.pas';
 
 {$R *.res}
 
